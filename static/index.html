@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cricgnaan — IPL Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">cricgnaan</div>
+  <div class="logo-sub">IPL Intelligence Engine</div>
+
+  <div class="sec">Teams &amp; Venue</div>
+
+  <div class="field">
+    <div class="fl">Team 1</div>
+    <select id="t1" onchange="scheduleUpdate()">
+      <option>Mumbai Indians</option>
+      <option>Chennai Super Kings</option>
+      <option>Royal Challengers Bangalore</option>
+      <option>Kolkata Knight Riders</option>
+      <option>Rajasthan Royals</option>
+      <option>Delhi Capitals</option>
+      <option>Sunrisers Hyderabad</option>
+      <option>Punjab Kings</option>
+      <option>Gujarat Titans</option>
+      <option>Lucknow Super Giants</option>
+    </select>
+  </div>
+  <div class="field">
+    <div class="fl">Team 2</div>
+    <select id="t2" onchange="scheduleUpdate()">
+      <option>Chennai Super Kings</option>
+      <option>Mumbai Indians</option>
+      <option>Royal Challengers Bangalore</option>
+      <option>Kolkata Knight Riders</option>
+      <option>Rajasthan Royals</option>
+      <option>Delhi Capitals</option>
+      <option>Sunrisers Hyderabad</option>
+      <option>Punjab Kings</option>
+      <option>Gujarat Titans</option>
+      <option>Lucknow Super Giants</option>
+    </select>
+  </div>
+  <div class="field">
+    <div class="fl">Venue</div>
+    <select id="venue" onchange="scheduleUpdate()">
+      <option>Wankhede Stadium</option>
+      <option>MA Chidambaram Stadium</option>
+      <option>Eden Gardens</option>
+      <option>M Chinnaswamy Stadium</option>
+      <option>Arun Jaitley Stadium</option>
+      <option>Rajiv Gandhi International Stadium</option>
+      <option>Sawai Mansingh Stadium</option>
+      <option>Narendra Modi Stadium</option>
+      <option>Dubai International Cricket Stadium</option>
+      <option>Sharjah Cricket Stadium</option>
+      <option>Sheikh Zayed Stadium</option>
+      <option>Brabourne Stadium</option>
+    </select>
+  </div>
+
+  <div class="sec">Toss</div>
+  <div class="field">
+    <div class="fl">Toss won by</div>
+    <div class="pill-row">
+      <div class="pill on" id="pt1" onclick="setToss('t1')">Team 1</div>
+      <div class="pill" id="pt2" onclick="setToss('t2')">Team 2</div>
+    </div>
+  </div>
+  <div class="field" style="margin-top:8px;">
+    <div class="fl">Decision</div>
+    <div class="pill-row">
+      <div class="pill on" id="dbat" onclick="setDec('bat')">Bat</div>
+      <div class="pill" id="dfield" onclick="setDec('field')">Field</div>
+    </div>
+  </div>
+
+  <div class="inferred">
+    <div class="inf-lbl">Auto-inferred lineup</div>
+    <div class="inf-row">
+      <span class="inf-team" id="inf-bat">Mumbai Indians</span>
+      <span class="inf-badge badge-bat">BATTING</span>
+    </div>
+    <div class="inf-row">
+      <span class="inf-team" id="inf-field">Chennai Super Kings</span>
+      <span class="inf-badge badge-field">FIELDING</span>
+    </div>
+  </div>
+
+  <div class="playoff-row">
+    <div class="pill-row">
+      <div class="pill" id="ppill" onclick="togglePlayoff()">Playoff / Final</div>
+    </div>
+  </div>
+
+  <div class="live-sec"><div class="ldot"></div>Live match state</div>
+
+  <div class="rg">
+    <div class="rt"><span class="rl">Current over</span><span class="rv" id="rv-over">0</span></div>
+    <input type="range" min="0" max="20" value="0" id="sl-over" oninput="sr('over');scheduleUpdate()">
+  </div>
+  <div class="rg">
+    <div class="rt"><span class="rl">1st innings total</span><span class="rv" id="rv-s1">0</span></div>
+    <input type="range" min="0" max="260" value="0" id="sl-s1" oninput="sr('s1');scheduleUpdate()">
+  </div>
+  <div class="rg" id="rg-s2">
+    <div class="rt"><span class="rl">2nd innings score</span><span class="rv" id="rv-s2">0</span></div>
+    <input type="range" min="0" max="260" value="0" id="sl-s2" oninput="sr('s2');scheduleUpdate()">
+  </div>
+  <div class="rg" id="rg-wk">
+    <div class="rt"><span class="rl">Wickets fallen (2nd inn)</span><span class="rv" id="rv-wk">0</span></div>
+    <input type="range" min="0" max="10" value="0" id="sl-wk" oninput="sr('wk');scheduleUpdate()">
+  </div>
+  <div class="rg" id="rg-extra">
+    <div class="rt"><span class="rl">Batter SR</span><span class="rv" id="rv-bsr">120</span></div>
+    <input type="range" min="0" max="250" value="120" id="sl-bsr" oninput="sr('bsr');scheduleUpdate()">
+  </div>
+  <div class="rg" id="rg-extra2">
+    <div class="rt"><span class="rl">Partnership balls</span><span class="rv" id="rv-part">6</span></div>
+    <input type="range" min="0" max="60" value="6" id="sl-part" oninput="sr('part');scheduleUpdate()">
+  </div>
+  <div class="rg" id="rg-extra3">
+    <div class="rt"><span class="rl">Bowler economy</span><span class="rv" id="rv-eco">8.0</span></div>
+    <input type="range" min="40" max="180" value="80" id="sl-eco" oninput="sr('eco');scheduleUpdate()">
+  </div>
+</aside>
+
+<main class="main">
+  <div id="api-err"></div>
+
+  <div class="mhdr">
+    <div class="th">
+      <div class="th-role" id="role-l" style="color:var(--gold)">BATTING FIRST</div>
+      <div class="th-name" id="name-l">MUMBAI INDIANS</div>
+      <div class="th-city" id="city-l">Mumbai</div>
+      <div class="th-pct cg" id="pct-l">50%</div>
+    </div>
+    <div class="vs-block">
+      <div class="vs-txt">VS</div>
+      <div class="vs-bar-wrap"><div class="vs-bar-in" id="vsbar" style="height:50%"></div></div>
+      <div class="conf-txt" id="conf-txt">—</div>
+    </div>
+    <div class="th right">
+      <div class="th-role" id="role-r" style="color:var(--blue)">FIELDING FIRST</div>
+      <div class="th-name" id="name-r">CHENNAI SUPER KINGS</div>
+      <div class="th-city" id="city-r">Chennai</div>
+      <div class="th-pct cb" id="pct-r">50%</div>
+    </div>
+  </div>
+
+  <div class="wb-wrap">
+    <div class="wb-a" id="wba" style="width:50%;background:var(--gold)"></div>
+    <div class="wb-b" id="wbb" style="width:50%;background:var(--blue)"></div>
+  </div>
+  <div class="fav-row">
+    <div class="fav-chip" id="fav-chip" style="background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.25);color:var(--gold)">Favourite: —</div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)" id="toss-tag">Loading model…</div>
+  </div>
+
+  <div class="igrid">
+    <div class="ic"><div class="ic-lbl">Toss Edge</div><div class="ic-val cg" id="ic-toss">—</div><div class="ic-sub" id="ic-tsub">…</div></div>
+    <div class="ic"><div class="ic-lbl">H2H (model)</div><div class="ic-val ct" id="ic-h2h">—</div><div class="ic-sub" id="ic-hsub">ensemble uses ELO</div></div>
+    <div class="ic"><div class="ic-lbl">ELO Advantage</div><div class="ic-val cb" id="ic-elo">—</div><div class="ic-sub" id="ic-esub">…</div></div>
+    <div class="ic"><div class="ic-lbl">RRR Gap</div><div class="ic-val cm" id="ic-rrr">—</div><div class="ic-sub" id="ic-rsub">Activate live mode</div></div>
+  </div>
+
+  <div class="brow">
+    <div class="panel">
+      <div class="pt">Toss Alpha Decay <span class="venue-tag" id="vtag">—</span></div>
+      <div class="era-strip" id="era-strip"></div>
+      <div class="decay-note" id="decay-note"></div>
+    </div>
+
+    <div class="panel">
+      <div class="pt">Pressure Index <span id="risk-tag" style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 10px;border-radius:12px;border:1px solid var(--border);color:var(--muted);">INACTIVE</span></div>
+      <div id="hint-area">
+        <div class="live-hint">Set <strong>over &gt; 0</strong> and <strong>1st innings total</strong><br>to activate live pressure tracking</div>
+      </div>
+      <div id="pi-area" style="display:none">
+        <div class="pi-row">
+          <div class="pi-track"><div class="pi-fill" id="pi-fill" style="width:0%"></div></div>
+          <div class="pi-num" id="pi-num">0.00</div>
+        </div>
+        <div class="sig-list">
+          <div class="sig-item"><span class="sn">RRR pressure</span><div class="st"><div class="sb" id="sb1" style="background:var(--blue);width:0%"></div></div><span class="sp" id="sp1">0%</span></div>
+          <div class="sig-item"><span class="sn">Wicket burden</span><div class="st"><div class="sb" id="sb2" style="background:var(--gold);width:0%"></div></div><span class="sp" id="sp2">0%</span></div>
+          <div class="sig-item"><span class="sn">Phase (over/20)</span><div class="st"><div class="sb" id="sb3" style="background:var(--teal);width:0%"></div></div><span class="sp" id="sp3">0%</span></div>
+          <div class="sig-item"><span class="sn">Collapse risk (30b)</span><div class="st"><div class="sb" id="sb4" style="background:var(--red);width:0%"></div></div><span class="sp" id="sp4">0%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script defer src="/static/app.js"></script>
+</body>
+</html>

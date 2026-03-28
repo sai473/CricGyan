@@ -16,8 +16,15 @@ ipl_intelligence_engine/
 │   └── unified_predictor.py   # Stacked ensemble match result predictor
 ├── evaluation/
 │   └── evaluate.py             # AUC, Brier, calibration, segment breakdown
+├── api/
+│   ├── main.py                 # FastAPI — cricgnaan HTML UI + /api/predict
+│   └── inference.py            # Loads pickles; same logic as Streamlit dashboard
+├── static/
+│   ├── index.html              # Dark-theme UI (calls API)
+│   ├── styles.css
+│   └── app.js
 ├── dashboard/
-│   └── app.py                  # Streamlit live match dashboard
+│   └── app.py                  # Streamlit live match dashboard (alternative UI)
 ├── notebooks/
 │   └── full_pipeline.ipynb     # End-to-end walkthrough notebook
 ├── requirements.txt
@@ -66,6 +73,17 @@ python evaluation/evaluate.py
 # 4. Launch dashboard
 python3 -m streamlit run dashboard/app.py
 ```
+
+### Web UI (cricgnaan — HTML + real models)
+
+Uses the same ensemble as `dashboard/app.py`, served by FastAPI:
+
+```bash
+pip install -r requirements.txt
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Open **http://127.0.0.1:8000/** — sidebar controls call **`POST /api/predict`** (LightGBM + meta + toss table + collapse). Deploy this stack on **Railway**, **Render**, or any host that runs Python (not Streamlit Cloud’s Streamlit-only runtime).
 
 ## Deploy the dashboard (website)
 
