@@ -40,7 +40,7 @@ ipl_intelligence_engine/
 ```bash
 # Full local stack (Streamlit, FastAPI dev server, training deps):
 pip install -r requirements-ui.txt
-# Optional — uv (Python 3.11 per pyproject.toml / .python-version): uv sync
+# Optional — uv (Python 3.12 per pyproject.toml / .python-version): uv sync
 # Notebooks / Kaggle downloads / SHAP / matplotlib (optional):
 # pip install -r requirements-dev.txt
 ```
@@ -118,7 +118,7 @@ The Streamlit app is separate from the Vercel HTML UI. The easiest host is **[St
 
 In **Streamlit Community Cloud** → app **Settings**, set the **Python requirements file** to **`requirements-ui.txt`** (Streamlit, Plotly, and the full training stack). If your workspace only allows the default file, use a branch where `requirements.txt` matches `requirements-ui.txt`, or merge those dependencies manually.
 
-The repo includes `runtime.txt` (Python 3.11), `.python-version` (3.11 for Vercel/local tooling), `packages.txt` (`libgomp1` for LightGBM), and `.streamlit/config.toml` for Cloud.
+The repo includes `runtime.txt` (Python 3.12), `.python-version` (3.12 — required by Vercel’s `vercel-runtime` and aligned with Streamlit Cloud), `packages.txt` (`libgomp1` for LightGBM), and `.streamlit/config.toml` for Cloud.
 
 ## Expected Accuracy
 
