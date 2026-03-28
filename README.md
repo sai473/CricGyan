@@ -67,6 +67,18 @@ python evaluation/evaluate.py
 python3 -m streamlit run dashboard/app.py
 ```
 
+## Deploy the dashboard (website)
+
+The dashboard is **Streamlit**, not a static site. The easiest host is **[Streamlit Community Cloud](https://streamlit.io/cloud)** (free, connects to GitHub). Vercel is not a good fit for this app.
+
+1. Push this repo to GitHub.
+2. Sign in at [share.streamlit.io](https://share.streamlit.io), **New app** → pick the repo, branch, and main file **`dashboard/app.py`**.
+3. **Models:** `models/saved/*.pkl` are gitignored. Pick one approach:
+   - **Secrets (recommended for public repos):** After training locally, zip the files: `cd models/saved && zip -r ../../models_bundle.zip *.pkl`. Upload the zip to a [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) (or any public HTTPS URL). In the Streamlit app **Settings → Secrets**, add `MODEL_BUNDLE_URL = "https://..."` pointing to that zip (see `.streamlit/secrets.toml.example`).
+   - **Commit binaries:** If each file is under GitHub’s size limits, you can `git add -f models/saved/*.pkl` and push so the models ship with the repo.
+
+The repo includes `requirements.txt`, `runtime.txt` (Python 3.11), `packages.txt` (`libgomp1` for LightGBM), and `.streamlit/config.toml` for Cloud.
+
 ## Expected Accuracy
 
 | Stage          | Accuracy | AUC  |

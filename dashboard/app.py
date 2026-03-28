@@ -7,7 +7,9 @@ import streamlit as st
 import pickle
 import os
 import sys
-import plotly.graph_objects as go
+import io
+import urllib.request
+import zipfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -15,27 +17,46 @@ from models.pressure_index import live_collapse_probability
 from models.unified_predictor import predict_match
 from models.toss_alpha_decay import get_toss_edge_feature
 
-st.set_page_config(page_title="IPL Match Predictor", page_icon="🏏", layout="wide", initial_sidebar_state="expanded")
 
-# Theme: strong text contrast so labels are always readable
-st.markdown("""
+def _project_root():
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+def _ensure_models_from_remote():
+    """If models are missing, optionally fetch a zip from st.secrets MODEL_BUNDLE_URL (Streamlit Cloud)."""
+    saved = os.path.join(_project_root(), "models", "saved")
+    if os.path.isfile(os.path.join(saved, "lgb_pre.pkl")):
+        return
+    try:
+        url = st.secrets["MODEL_BUNDLE_URL"]
+    except KeyError:
+        return
+    os.makedirs(saved, exist_ok=True)
+    try:
+        with st.spinner("Downloading model bundle…"):
+            req = urllib.request.Request(url, headers={"User-Agent": "ipl-intelligence-engine/1"})
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                data = resp.read()
+        with zipfile.ZipFile(io.BytesIO(data)) as zf:
+            zf.extractall(saved)
+    except Exception as e:
+        st.error(f"Could not download or unpack model bundle: {e}")
+
+
+st.set_page_config(page_title="IPL Match Predictor", page_icon="🏏", layout="centered", initial_sidebar_state="expanded")
+_ensure_models_from_remote()
+
+# Narrow, readable column; rely on Streamlit defaults otherwise
+st.markdown(
+    """
 <style>
-    .stApp { background: #f8fafc; }
-    main { padding: 2rem 3rem 4rem; max-width: 900px; }
-    /* Sidebar: force dark text so labels are readable */
-    [data-testid="stSidebar"] { background: #ffffff !important; }
-    [data-testid="stSidebar"] label { color: #1e293b !important; font-weight: 600; }
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span { color: #334155 !important; }
-    [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #0f172a !important; font-weight: 600; }
-    [data-testid="stSidebar"] .stCaptionContainer label { color: #475569 !important; font-weight: 500; }
-    [data-testid="block-container"] { padding: 0; }
-    /* Main content: dark headings and body */
-    h1, h2, h3 { color: #0f172a !important; font-weight: 600; }
-    p, .stMarkdown { color: #1e293b !important; }
-    .stCaptionContainer label { color: #475569 !important; }
+    .block-container { padding-top: 1.5rem; max-width: 42rem; }
     #MainMenu, footer { visibility: hidden; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
+
 
 @st.cache_resource
 def load_models():
@@ -58,22 +79,31 @@ def load_models():
     except FileNotFoundError: pass
     return lgb_pre, lgb_in, meta, toss_df, collapse_model, collapse_cal, pre_calibrator, team_stats
 
+
 lgb_pre, lgb_in, meta, toss_df, collapse_model, collapse_cal, pre_calibrator, team_stats = load_models()
 if lgb_pre is None:
-    st.error("Models not found. Run: `python3 run_from_kaggle.py`")
+    st.error(
+        "Models not found locally. Either run `python3 run_from_kaggle.py`, "
+        "commit `models/saved/*.pkl`, or set **MODEL_BUNDLE_URL** in Streamlit Cloud secrets "
+        "(see `.streamlit/secrets.toml.example`)."
+    )
     st.stop()
 
-# --- Header ---
-st.title("🏏 IPL Match Predictor")
-st.markdown("Predict the winner — before the match or as the chase unfolds.")
-st.markdown("---")
+TEAMS = [
+    "Mumbai Indians", "Chennai Super Kings", "Royal Challengers Bangalore", "Kolkata Knight Riders",
+    "Rajasthan Royals", "Delhi Capitals", "Sunrisers Hyderabad", "Punjab Kings", "Gujarat Titans", "Lucknow Super Giants",
+]
 
 # --- Sidebar ---
 with st.sidebar:
-    st.header("Match setup")
-    team_a = st.selectbox("Batting first", ["Mumbai Indians", "Chennai Super Kings", "Royal Challengers Bangalore", "Kolkata Knight Riders", "Rajasthan Royals", "Delhi Capitals", "Sunrisers Hyderabad", "Punjab Kings", "Gujarat Titans", "Lucknow Super Giants"], key="team_a")
-    team_b = st.selectbox("Chasing", ["Chennai Super Kings", "Mumbai Indians", "Royal Challengers Bangalore", "Kolkata Knight Riders", "Rajasthan Royals", "Delhi Capitals", "Sunrisers Hyderabad", "Punjab Kings", "Gujarat Titans", "Lucknow Super Giants"], key="team_b")
-    venue_options = ["Wankhede Stadium", "MA Chidambaram Stadium", "Eden Gardens", "M Chinnaswamy Stadium", "Arun Jaitley Stadium", "Rajiv Gandhi International Stadium", "Sawai Mansingh Stadium", "Narendra Modi Stadium", "Dubai International Cricket Stadium", "Sharjah Cricket Stadium", "Sheikh Zayed Stadium", "Brabourne Stadium"]
+    st.subheader("Match")
+    team_a = st.selectbox("Batting first", TEAMS, key="team_a")
+    team_b = st.selectbox("Chasing", TEAMS, key="team_b")
+    venue_options = [
+        "Wankhede Stadium", "MA Chidambaram Stadium", "Eden Gardens", "M Chinnaswamy Stadium", "Arun Jaitley Stadium",
+        "Rajiv Gandhi International Stadium", "Sawai Mansingh Stadium", "Narendra Modi Stadium", "Dubai International Cricket Stadium",
+        "Sharjah Cricket Stadium", "Sheikh Zayed Stadium", "Brabourne Stadium",
+    ]
     if toss_df is not None and hasattr(toss_df, "venue"):
         venue_options = list(dict.fromkeys(venue_options + sorted(toss_df["venue"].dropna().unique().tolist())[:20]))
     venue = st.selectbox("Venue", venue_options, key="venue")
@@ -84,7 +114,7 @@ with st.sidebar:
     is_playoff = st.checkbox("Playoff or final", value=False, key="playoff")
     st.divider()
     st.subheader("Live (optional)")
-    st.caption("For in-play prediction. Leave at 0 for pre-match.")
+    st.caption("Set over and scores for in-play odds.")
     current_over = st.slider("Over", 0, 20, 0, key="over")
     score_1st = st.number_input("1st innings total", 0, 300, 150, key="score_1")
     score_2nd = st.number_input("2nd innings score", 0, 300, 0, key="score_2")
@@ -128,72 +158,78 @@ if use_live and lgb_in is not None:
 pred = predict_match(lgb_pre, lgb_in, meta, pre_feats, in_feats, pre_calibrator=pre_calibrator)
 win_a = (pred.get("win_prob_team_a") or 0.5) * 100
 win_b = (pred.get("win_prob_team_b") or 0.5) * 100
-
-# --- Main: Win probability (Plotly bar) ---
-st.subheader("Win probability")
-fig = go.Figure(go.Bar(
-    x=[win_a, win_b],
-    y=[team_a, team_b],
-    orientation="h",
-    marker_color=["#2563eb", "#dc2626"],
-    text=[f"{win_a:.0f}%", f"{win_b:.0f}%"],
-    textposition="inside",
-    textfont=dict(size=16, color="white", family="sans-serif"),
-))
-fig.update_layout(
-    height=140,
-    margin=dict(l=0, r=0, t=0, b=0),
-    xaxis=dict(range=[0, 100], showgrid=False, zeroline=False, visible=False),
-    yaxis=dict(showgrid=False, tickfont=dict(size=14, color="#1e293b", family="sans-serif")),
-    font=dict(color="#1e293b", size=14),
-    showlegend=False,
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
-)
-st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-
 fav = team_a if win_a >= 50 else team_b
-st.markdown(f"**Favourite:** {fav} ({max(win_a, win_b):.0f}%) · *{'Live' if use_live else 'Pre-match'} prediction*")
-st.markdown("---")
 
-# --- Two cards: Collapse risk + Toss ---
-col1, col2 = st.columns(2)
-with col1:
-    with st.container():
-        st.subheader("Collapse risk")
-        if use_live and collapse_model is not None and collapse_cal is not None:
-            runs_n = max(0, score_1st + 1 - score_2nd)
-            balls_left = max(1, (20 - current_over) * 6)
-            out = live_collapse_probability(runs_needed=runs_n, balls_remaining=balls_left, wickets_fallen=wkts_2nd, batter_sr_recent=float(batter_sr), partnership_balls=partnership, bowler_economy=bowler_eco, model=collapse_model, calibrator=collapse_cal)
-            risk, prob = out.get("risk_tier", "low"), out.get("collapse_probability", 0) * 100
-            st.metric("Risk level", risk.upper(), f"{prob:.0f}% in next 30 balls")
-            if risk in ("critical", "high"):
-                st.warning("Elevated collapse risk.")
-        else:
-            st.info("Set live score in the sidebar to see collapse risk during the chase.")
+# --- Main ---
+st.title("IPL Match Predictor")
+if use_live:
+    st.caption("In-play · win and collapse use live state from the sidebar")
+else:
+    st.caption("Pre-match · set over to 0 and 2nd innings score to 0 for static odds")
 
-with col2:
-    with st.container():
-        st.subheader("Toss at venue")
-        if toss_df is not None:
-            try:
-                mod = toss_df[(toss_df["venue"] == venue) & (toss_df["era"] == ERA_FUTURE)]
-                if not mod.empty:
-                    bat_row = mod[mod["toss_decision"] == "bat"]
-                    fld_row = mod[mod["toss_decision"] == "field"]
-                    bat_e = bat_row["toss_edge"].iloc[0] if len(bat_row) else 0
-                    fld_e = fld_row["toss_edge"].iloc[0] if len(fld_row) else 0
-                    st.caption(f"Bat first: {bat_e:+.2f} · Field first: {fld_e:+.2f}")
-                    if abs(toss_edge_score) < 0.02:
-                        st.success("Toss impact at this venue is roughly neutral.")
-                    else:
-                        st.success(f"Toss favours **{team_a if toss_edge_score > 0 else team_b}** here.")
-                else:
-                    st.caption("No venue data for modern era.")
-            except Exception:
-                st.caption("Toss data unavailable.")
+st.divider()
+
+a_col, b_col = st.columns(2)
+with a_col:
+    st.metric(team_a, f"{win_a:.1f}%", help="Team batting first")
+with b_col:
+    st.metric(team_b, f"{win_b:.1f}%", help="Chasing team")
+
+st.write("")
+st.caption(f"{team_a} · {win_a:.0f}%")
+st.progress(win_a / 100.0)
+st.caption(f"{team_b} · {win_b:.0f}%")
+st.progress(win_b / 100.0)
+
+st.caption(f"Favourite: **{fav}** · Toss edge (batting first): {toss_edge_score:+.3f}")
+
+st.divider()
+st.subheader("Collapse risk (next 30 balls)")
+if use_live and collapse_model is not None and collapse_cal is not None:
+    runs_n = max(0, score_1st + 1 - score_2nd)
+    balls_left = max(1, (20 - current_over) * 6)
+    out = live_collapse_probability(
+        runs_needed=runs_n, balls_remaining=balls_left, wickets_fallen=wkts_2nd,
+        batter_sr_recent=float(batter_sr), partnership_balls=partnership, bowler_economy=bowler_eco,
+        model=collapse_model, calibrator=collapse_cal,
+    )
+    risk = (out.get("risk_tier") or "low").lower()
+    prob = out.get("collapse_probability", 0) * 100
+    st.metric("Estimated chance (30 balls)", f"{prob:.0f}%", delta=f"Tier: {risk}")
+    if risk in ("critical", "high"):
+        st.warning("Higher chance of wickets falling in a cluster soon.")
+else:
+    st.info("Turn on **live** mode: set **Over** above 0 and **1st innings total** in the sidebar.")
+
+st.divider()
+st.subheader("Toss at venue")
+st.caption(venue)
+if toss_df is not None:
+    try:
+        mod = toss_df[(toss_df["venue"] == venue) & (toss_df["era"] == ERA_FUTURE)]
+        if not mod.empty:
+            bat_row = mod[mod["toss_decision"] == "bat"]
+            fld_row = mod[mod["toss_decision"] == "field"]
+            bat_e = bat_row["toss_edge"].iloc[0] if len(bat_row) else 0
+            fld_e = fld_row["toss_edge"].iloc[0] if len(fld_row) else 0
+            t1, t2 = st.columns(2)
+            t1.metric("Bat first", f"{bat_e:+.2f}")
+            t2.metric("Field first", f"{fld_e:+.2f}")
+            if abs(toss_edge_score) < 0.02:
+                st.success("Toss effect at this venue looks small.")
+            else:
+                fav_team = team_a if toss_edge_score > 0 else team_b
+                st.success(f"Model leans toward **{fav_team}** after the toss here.")
         else:
-            st.caption("Run pipeline to load toss data.")
+            st.caption("No row for this venue in the modern-era table.")
+    except Exception:
+        st.caption("Could not read toss table.")
+else:
+    st.caption("Train the pipeline to load toss data.")
 
 with st.expander("How to use"):
-    st.markdown("**Pre-match:** Leave over and 2nd innings score at 0. **Live:** Enter current over, 1st innings total, and 2nd innings score to update win probability and collapse risk.")
+    st.markdown(
+        "- **Pre-match:** Over = 0, 2nd innings score = 0.\n"
+        "- **Live:** Set over, 1st-innings total, and current score.\n"
+        "- Change **venue** and **toss** anytime; numbers update immediately."
+    )
