@@ -36,7 +36,7 @@ git push -u origin main
 
 ## What is not uploaded
 
-- **`.venv/`** — virtualenv; others use `pip install -r requirements.txt`.
+- **`.venv/`** — virtualenv; others use `pip install -r requirements-ui.txt` for the full local stack.
 - **`models/saved/*.pkl`** — trained models; others run `python3 run_from_kaggle.py`.
 - **`data/kaggle_ipl/`** — downloaded CSV; others run the pipeline to fetch from Kaggle.
 - **`kaggle.json`** — never commit; each user adds their own.

@@ -1,5 +1,5 @@
-# Optional: notebooks, training pipeline, Kaggle download, SHAP, plots
--r requirements.txt
+# Notebooks, Kaggle, SHAP, matplotlib (optional)
+-r requirements-ui.txt
 kaggle>=1.5.16
 shap>=0.43.0
 matplotlib>=3.7.0

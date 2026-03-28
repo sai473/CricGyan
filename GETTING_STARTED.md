@@ -35,8 +35,8 @@ The project is set up to use `Desktop/kaggle` automatically.
 Open **Terminal** and go to the project folder, then install:
 
 ```bash
-cd /Users/saikishore/Downloads/ipl_intelligence_engine
-pip install -r requirements.txt
+cd /path/to/CricGyan
+pip install -r requirements-ui.txt
 ```
 
 ---
