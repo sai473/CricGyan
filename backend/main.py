@@ -63,6 +63,7 @@ def _load_models():
 
 @app.get("/health")
 @app.get("/api/health")
+@app.get("/api")
 def health():
     from backend.inference import load_models_cached
 
@@ -71,6 +72,7 @@ def health():
 
 
 @app.post("/api/predict")
+@app.post("/api")
 def api_predict(body: PredictIn):
     from backend.inference import run_predict
 
