@@ -3,7 +3,7 @@ name = "cricgyan"
 version = "0.1.0"
 description = "IPL Intelligence Engine — ML pipeline and CricGyaan API"
 readme = "README.md"
-# Keep compatible with `.python-version` (3.11) and runtime.txt. Do not use `==3.12.*` only.
+# Align with .python-version and runtime.txt (Python 3.11).
 requires-python = ">=3.11"
 dependencies = []
 
