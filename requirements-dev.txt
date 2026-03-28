@@ -1,0 +1,8 @@
+# Optional: notebooks, training pipeline, Kaggle download, SHAP, plots
+-r requirements.txt
+kaggle>=1.5.16
+shap>=0.43.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+jupyter>=1.0.0
+ipykernel>=6.0.0

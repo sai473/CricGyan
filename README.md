@@ -36,6 +36,8 @@ ipl_intelligence_engine/
 
 ```bash
 pip install -r requirements.txt
+# For notebooks / Kaggle downloads / SHAP / matplotlib (optional):
+# pip install -r requirements-dev.txt
 ```
 
 ### Option A: Use data from Kaggle (recommended)
@@ -91,7 +93,7 @@ Open **http://127.0.0.1:8000/** — the page in **`public/`** calls **`POST /api
 The repo includes **`vercel.json`** and **`api/index.py`** (Mangum wraps the FastAPI app). Vercel serves **`public/`** at the domain root; **`/api/*`** routes to the Python function.
 
 1. Push the repo to GitHub and [import the project in Vercel](https://vercel.com/new).
-2. Ensure **`models/saved/*.pkl`** are committed (or predictions will 503). Vercel installs **`requirements-api.txt`** only (minimal ML + FastAPI) so the bundle stays under the **~500 MB** Lambda limit. For local dev, notebooks, and Streamlit, use **`requirements.txt`**.
+2. Ensure **`models/saved/*.pkl`** are committed (or predictions will 503). **Vercel** uses **`requirements-vercel.txt`** (API + ML only, no Streamlit) via `vercel.json` → `installCommand`. **Local / Streamlit** use root **`requirements.txt`** plus optional **`requirements-dev.txt`** for Jupyter/Kaggle/SHAP.
 3. **Limits:** LightGBM, scikit-learn, and pickles can exceed free-tier bundle size or cold-start time. If the deploy fails, host the API on **Railway/Render** and keep only **`public/`** on Vercel with `fetch` pointed at that API URL.
 
 **Streamlit** is unchanged: use **Streamlit Community Cloud** with `dashboard/app.py` (see below).

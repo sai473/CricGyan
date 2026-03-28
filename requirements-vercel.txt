@@ -1,5 +1,4 @@
-# Minimal deps for backend/ + models inference only (Vercel / Lambda ~500 MB limit).
-# Full stack: pip install -r requirements.txt
+# Installed ONLY on Vercel (see vercel.json installCommand). No Streamlit/Plotly/Uvicorn.
 fastapi>=0.109.0
 mangum>=0.17.0
 numpy>=1.24.0,<2.3
