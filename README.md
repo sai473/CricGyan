@@ -16,13 +16,14 @@ ipl_intelligence_engine/
 │   └── unified_predictor.py   # Stacked ensemble match result predictor
 ├── evaluation/
 │   └── evaluate.py             # AUC, Brier, calibration, segment breakdown
-├── api/
-│   ├── main.py                 # FastAPI — cricgnaan HTML UI + /api/predict
+├── backend/
+│   ├── main.py                 # FastAPI — serves public/ + POST /api/predict
 │   └── inference.py            # Loads pickles; same logic as Streamlit dashboard
-├── static/
-│   ├── index.html              # Dark-theme UI (calls API)
-│   ├── styles.css
-│   └── app.js
+├── api/
+│   └── index.py                # Vercel serverless entry (Mangum → FastAPI)
+├── public/
+│   ├── index.html              # cricgnaan UI (calls /api/predict)
+│   └── static/                 # styles.css, app.js
 ├── dashboard/
 │   └── app.py                  # Streamlit live match dashboard (alternative UI)
 ├── notebooks/
@@ -80,18 +81,28 @@ Uses the same ensemble as `dashboard/app.py`, served by FastAPI:
 
 ```bash
 pip install -r requirements.txt
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Open **http://127.0.0.1:8000/** — sidebar controls call **`POST /api/predict`** (LightGBM + meta + toss table + collapse). Deploy this stack on **Railway**, **Render**, or any host that runs Python (not Streamlit Cloud’s Streamlit-only runtime).
+Open **http://127.0.0.1:8000/** — the page in **`public/`** calls **`POST /api/predict`**.
 
-## Deploy the dashboard (website)
+### Deploy on Vercel (HTML UI + API)
 
-The dashboard is **Streamlit**, not a static site. The easiest host is **[Streamlit Community Cloud](https://streamlit.io/cloud)** (free, connects to GitHub). Vercel is not a good fit for this app.
+The repo includes **`vercel.json`** and **`api/index.py`** (Mangum wraps the FastAPI app). Vercel serves **`public/`** at the domain root; **`/api/*`** routes to the Python function.
+
+1. Push the repo to GitHub and [import the project in Vercel](https://vercel.com/new).
+2. Ensure **`models/saved/*.pkl`** are committed (or predictions will 503). Dependencies install from **`requirements.txt`**.
+3. **Limits:** LightGBM, scikit-learn, and pickles can exceed free-tier bundle size or cold-start time. If the deploy fails, host the API on **Railway/Render** and keep only **`public/`** on Vercel with `fetch` pointed at that API URL.
+
+**Streamlit** is unchanged: use **Streamlit Community Cloud** with `dashboard/app.py` (see below).
+
+## Deploy the Streamlit dashboard
+
+The Streamlit app is separate from the Vercel HTML UI. The easiest host is **[Streamlit Community Cloud](https://streamlit.io/cloud)** (free, connects to GitHub).
 
 1. Push this repo to GitHub.
 2. Sign in at [share.streamlit.io](https://share.streamlit.io), **New app** → pick the repo, branch, and main file **`dashboard/app.py`**.
-3. **Models:** `models/saved/*.pkl` are gitignored. Pick one approach:
+3. **Models:** If `models/saved/*.pkl` are not in the repo, pick one approach:
    - **Secrets (recommended for public repos):** After training locally, zip the files: `cd models/saved && zip -r ../../models_bundle.zip *.pkl`. Upload the zip to a [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) (or any public HTTPS URL). In the Streamlit app **Settings → Secrets**, add `MODEL_BUNDLE_URL = "https://..."` pointing to that zip (see `.streamlit/secrets.toml.example`).
    - **Commit binaries:** If each file is under GitHub’s size limits, you can `git add -f models/saved/*.pkl` and push so the models ship with the repo.
 

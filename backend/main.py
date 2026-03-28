@@ -1,6 +1,7 @@
 """
-FastAPI app: serves the cricgnaan HTML UI and /api/predict (real ensemble models).
-Run: uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+FastAPI app: serves the cricgnaan UI from public/ and POST /api/predict.
+
+Local: uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 """
 import os
 import sys
@@ -15,7 +16,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-STATIC = os.path.join(ROOT, "static")
+PUBLIC = os.path.join(ROOT, "public")
+PUBLIC_STATIC = os.path.join(PUBLIC, "static")
 
 
 class PredictIn(BaseModel):
@@ -54,14 +56,15 @@ app.add_middleware(
 
 @app.on_event("startup")
 def _load_models():
-    from api.inference import load_models_cached
+    from backend.inference import load_models_cached
 
     load_models_cached()
 
 
 @app.get("/health")
+@app.get("/api/health")
 def health():
-    from api.inference import load_models_cached
+    from backend.inference import load_models_cached
 
     m = load_models_cached()
     return {"ok": True, "models_loaded": m is not None and m[0] is not None}
@@ -69,7 +72,7 @@ def health():
 
 @app.post("/api/predict")
 def api_predict(body: PredictIn):
-    from api.inference import run_predict
+    from backend.inference import run_predict
 
     try:
         return run_predict(body.model_dump())
@@ -81,10 +84,11 @@ def api_predict(body: PredictIn):
 
 @app.get("/")
 def index():
-    path = os.path.join(STATIC, "index.html")
+    path = os.path.join(PUBLIC, "index.html")
     if not os.path.isfile(path):
-        raise HTTPException(status_code=404, detail="static/index.html missing")
+        raise HTTPException(status_code=404, detail="public/index.html missing")
     return FileResponse(path, media_type="text/html")
 
 
-app.mount("/static", StaticFiles(directory=STATIC), name="static")
+if os.path.isdir(PUBLIC_STATIC):
+    app.mount("/static", StaticFiles(directory=PUBLIC_STATIC), name="static")

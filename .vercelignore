@@ -1,0 +1,10 @@
+.venv
+venv
+__pycache__
+.git
+notebooks
+data/kaggle_ipl
+*.pyc
+.DS_Store
+.pytest_cache
+.matplotlib
