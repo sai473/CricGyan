@@ -1,6 +1,7 @@
-# Vercel serverless: lite inference only (numpy + lightgbm). ~150–250 MB installed.
-# Training / Streamlit / local API: use requirements-ui.txt
+# Vercel serverless: lite inference only. Installed size ~150–200 MB (numpy + scipy + lightgbm + FastAPI).
+# LightGBM pulls scipy; there is no smaller official wheel without scipy.
+# Training / Streamlit: use requirements-ui.txt (never point Vercel at that file).
 fastapi>=0.109.0
 mangum>=0.17.0
-numpy>=1.24.0,<2.3
+numpy>=1.24.0,<2.0
 lightgbm>=4.0.0,<4.6

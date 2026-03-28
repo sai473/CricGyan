@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "pip install --no-cache-dir -r requirements.txt",
   "rewrites": [{ "source": "/api/(.*)", "destination": "/api" }],
   "functions": {
     "api/index.py": {

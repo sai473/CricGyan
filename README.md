@@ -101,6 +101,8 @@ The repo includes **`vercel.json`** and **`api/index.py`** (Mangum wraps the Fas
 3. **Pickles alone are not enough on Vercel** — without the lite export files, the API would need pandas/sklearn and exceed the size limit. For local development, use **`pip install -r requirements-ui.txt`**.
 4. If anything still fails cold-start or size checks, host the API on **Railway/Render** and point the static UI at that base URL.
 
+**If the build still reports dependency size ~577 MB:** that number matches the **old** full stack (pandas + scikit-learn + …), not the slim `requirements.txt`. Fix: confirm **GitHub `main` includes the latest commit** (slim requirements + lite JSON/txt under `models/saved/`), then in Vercel **Project → Settings → Build & Development** remove any custom **Install Command** that installs `requirements-ui.txt` or the full environment, **clear the build cache**, and redeploy. The repo’s **`vercel.json`** sets `installCommand` to `pip install --no-cache-dir -r requirements.txt`.
+
 **Streamlit** is unchanged: use **Streamlit Community Cloud** with `dashboard/app.py` (see below).
 
 ## Deploy the Streamlit dashboard
