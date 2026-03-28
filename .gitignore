@@ -18,8 +18,11 @@ build/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Trained models (reproducible via run_from_kaggle.py)
-models/saved/*.pkl
+# Trained models are tracked for Streamlit Cloud; regenerate with: python3 run_from_kaggle.py
+# (removed ignore so `git add` / `git commit` include *.pkl without -f)
+
+# Local zip for manual upload to GitHub Releases (optional)
+models_bundle.zip
 
 # Downloaded Kaggle data (reproducible via load_ipl_from_kaggle)
 data/kaggle_ipl/

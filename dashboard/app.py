@@ -88,9 +88,11 @@ st.markdown(
 )
 
 
-@st.cache_resource
-def load_models():
-    base = os.path.join(os.path.dirname(__file__), "..")
+@st.cache_resource(show_spinner="Loading models…")
+def load_models(_mtime_key: str = ""):
+    """Paths use absolute project root so Streamlit Cloud finds `models/saved` reliably."""
+    _ = _mtime_key  # cache bust when lgb_pre.pkl is added or updated
+    base = _project_root()
     try:
         with open(os.path.join(base, "models/saved/lgb_pre.pkl"), "rb") as f: lgb_pre = pickle.load(f)
         with open(os.path.join(base, "models/saved/lgb_in.pkl"), "rb") as f: lgb_in = pickle.load(f)
@@ -110,7 +112,14 @@ def load_models():
     return lgb_pre, lgb_in, meta, toss_df, collapse_model, collapse_cal, pre_calibrator, team_stats
 
 
-lgb_pre, lgb_in, meta, toss_df, collapse_model, collapse_cal, pre_calibrator, team_stats = load_models()
+# Bust cache when pkls appear or change (avoids stuck "no models" after a new deploy)
+_pkl_marker = os.path.join(_project_root(), "models", "saved", "lgb_pre.pkl")
+try:
+    _cache_key = str(os.path.getmtime(_pkl_marker))
+except OSError:
+    _cache_key = "missing"
+
+lgb_pre, lgb_in, meta, toss_df, collapse_model, collapse_cal, pre_calibrator, team_stats = load_models(_cache_key)
 if lgb_pre is None:
     had_url = False
     try:
@@ -130,7 +139,15 @@ if lgb_pre is None:
             "2. **Streamlit secrets:** add `MODEL_BUNDLE_URL` to a public `.zip` of `models/saved/*.pkl` "
             "(see `.streamlit/secrets.toml.example`)."
         )
-    st.code("cd models/saved && zip -r ../../models_bundle.zip *.pkl", language="bash")
+    st.code("cd models/saved\nzip -r ../../models_bundle.zip *.pkl", language="bash")
+    root = _project_root()
+    ms = os.path.join(root, "models", "saved")
+    with st.expander("What the server sees (debug)"):
+        st.write(f"**Project root:** `{root}`")
+        st.write(f"**models/saved exists:** {os.path.isdir(ms)}")
+        if os.path.isdir(ms):
+            st.text("Files in models/saved:\n" + "\n".join(sorted(os.listdir(ms))) or "(empty)")
+        st.caption("On GitHub, open `models/saved/` on **main** — you should see `.pkl` files. If not, push again. In Streamlit: **Manage app → Reboot** after deploy.")
     st.stop()
 
 TEAMS = [
