@@ -40,6 +40,7 @@ ipl_intelligence_engine/
 ```bash
 # Full local stack (Streamlit, FastAPI dev server, training deps):
 pip install -r requirements-ui.txt
+# Optional — uv (Python 3.11 per pyproject.toml / .python-version): uv sync
 # Notebooks / Kaggle downloads / SHAP / matplotlib (optional):
 # pip install -r requirements-dev.txt
 ```
