@@ -1,8 +1,7 @@
 """
 Vercel Python serverless entry — wraps the FastAPI app with Mangum.
 
-Set in Vercel: Python 3.11, installCommand: pip install -r requirements.txt
-Note: LightGBM + model pickles may exceed free-tier limits; use Pro or deploy API on Railway.
+Requires lite model exports under models/saved/ (see README). Installs from requirements.txt (numpy + lightgbm only).
 """
 import os
 import sys

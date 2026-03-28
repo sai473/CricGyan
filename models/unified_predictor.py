@@ -16,8 +16,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import roc_auc_score, log_loss, brier_score_loss
 
-from models.pre_match_features import PRE_MATCH_FEATURES
-from models.pressure_index import COLLAPSE_FEATURES as IN_MATCH_FEATURES
+from models.feature_constants import IN_MATCH_FEATURES, PRE_MATCH_FEATURES
 
 
 # ── Pre-match model ───────────────────────────────────────────────────────────

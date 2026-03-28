@@ -8,7 +8,7 @@ From the project folder, run:
 Before first run:
   1. Get kaggle.json from https://www.kaggle.com/settings (Create New Token)
   2. Put it in Desktop/kaggle/kaggle.json
-  3. pip install -r requirements.txt
+  3. pip install -r requirements-ui.txt
 """
 
 import os
@@ -96,6 +96,20 @@ def main():
     with open(os.path.join(save_dir, "team_stats.pkl"), "wb") as f:
         pickle.dump(team_stats, f)
     print("  Saved team_stats.pkl (latest ELO & form per team)")
+
+    from models.inference_export import export_lite_assets
+
+    export_lite_assets(
+        save_dir,
+        lgb_pre,
+        lgb_in,
+        meta,
+        pre_calibrator,
+        collapse_model,
+        collapse_cal,
+        toss_alpha_df,
+        team_stats,
+    )
 
     print("\n" + "=" * 60)
     print("  Done. To start the dashboard: python3 -m streamlit run dashboard/app.py")

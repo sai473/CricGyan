@@ -12,19 +12,11 @@ Builds one row per match with all signals knowable BEFORE ball 1:
 import pandas as pd
 import numpy as np
 from models.toss_alpha_decay import compute_toss_alpha_decay, get_toss_edge_feature
+from models.feature_constants import PRE_MATCH_FEATURES
 
 
 ERA_BINS   = [2007, 2012, 2018, 2025]
 ERA_LABELS = ['early', 'mid', 'modern']
-
-PRE_MATCH_FEATURES = [
-    'toss_edge_score',
-    'elo_delta',
-    'form_delta',
-    'h2h_venue_wr',
-    'is_playoff',
-    'match_number_norm',
-]
 
 
 # ── ELO ───────────────────────────────────────────────────────────────────────

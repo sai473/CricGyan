@@ -18,7 +18,8 @@ ipl_intelligence_engine/
 │   └── evaluate.py             # AUC, Brier, calibration, segment breakdown
 ├── backend/
 │   ├── main.py                 # FastAPI — serves public/ + POST /api/predict
-│   └── inference.py            # Loads pickles; same logic as Streamlit dashboard
+│   ├── inference.py            # Pickle stack (local) or lite exports (Vercel)
+│   └── inference_lite.py       # numpy + lightgbm inference for serverless
 ├── api/
 │   └── index.py                # Vercel serverless entry (Mangum → FastAPI)
 ├── public/
@@ -28,8 +29,8 @@ ipl_intelligence_engine/
 │   └── app.py                  # Streamlit live match dashboard (alternative UI)
 ├── notebooks/
 │   └── full_pipeline.ipynb     # End-to-end walkthrough notebook
-├── requirements.txt          # API + ML only (default for Vercel — keep small)
-├── requirements-ui.txt       # Local: FastAPI + Streamlit + Plotly
+├── requirements.txt          # Vercel: numpy + lightgbm + FastAPI only (under ~250 MB install)
+├── requirements-ui.txt       # Local: training + Streamlit + full ML stack
 ├── requirements-dev.txt      # Optional: Jupyter, Kaggle CLI, SHAP, …
 └── README.md
 ```
@@ -96,8 +97,9 @@ Open **http://127.0.0.1:8000/** — the page in **`public/`** calls **`POST /api
 The repo includes **`vercel.json`** and **`api/index.py`** (Mangum wraps the FastAPI app). Vercel serves **`public/`** at the domain root; **`/api/*`** routes to the Python function.
 
 1. Push the repo to GitHub and [import the project in Vercel](https://vercel.com/new).
-2. Ensure **`models/saved/*.pkl`** are committed (or predictions will 503). **Vercel** always runs `pip install -r requirements.txt` on the default Python build — root **`requirements.txt`** is intentionally **small** (FastAPI, Mangum, numpy/pandas/scipy/sklearn/LightGBM only). **Do not** add Streamlit or Jupyter there. For local work, use **`requirements-ui.txt`** (or **`requirements-dev.txt`** for notebooks).
-3. **Limits:** LightGBM, scikit-learn, and pickles can exceed free-tier bundle size or cold-start time. If the deploy fails, host the API on **Railway/Render** and keep only **`public/`** on Vercel with `fetch` pointed at that API URL.
+2. **Lambda has a ~500 MB cap on installed dependencies.** Root **`requirements.txt`** installs only **FastAPI, Mangum, numpy, and LightGBM** (no pandas/sklearn/scipy). Inference uses **exported lite assets** next to your pickles — native **`lgb_*_model.txt`**, **`inference_calibrators.json`**, **`toss_alpha_table.json`**, **`team_stats.json`**. Generate them by training with **`python run_from_kaggle.py`** (writes these automatically) or, if you already have **`models/saved/*.pkl`**, run **`python -m models.inference_export models/saved`**. Commit those files to the repo Vercel builds from.
+3. **Pickles alone are not enough on Vercel** — without the lite export files, the API would need pandas/sklearn and exceed the size limit. For local development, use **`pip install -r requirements-ui.txt`**.
+4. If anything still fails cold-start or size checks, host the API on **Railway/Render** and point the static UI at that base URL.
 
 **Streamlit** is unchanged: use **Streamlit Community Cloud** with `dashboard/app.py` (see below).
 
@@ -111,7 +113,7 @@ The Streamlit app is separate from the Vercel HTML UI. The easiest host is **[St
    - **Secrets (recommended for public repos):** After training locally, zip the files: `cd models/saved && zip -r ../../models_bundle.zip *.pkl`. Upload the zip to a [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) (or any public HTTPS URL). In the Streamlit app **Settings → Secrets**, add `MODEL_BUNDLE_URL = "https://..."` pointing to that zip (see `.streamlit/secrets.toml.example`).
    - **Commit binaries:** If each file is under GitHub’s size limits, you can `git add -f models/saved/*.pkl` and push so the models ship with the repo.
 
-In **Streamlit Community Cloud** → app **Settings**, set the **Python requirements file** to **`requirements-ui.txt`** (it includes Streamlit, Plotly, and the same ML stack as root `requirements.txt`). If your workspace only allows the default file, use a branch where `requirements.txt` is a copy of `requirements-ui.txt`, or merge those dependencies manually.
+In **Streamlit Community Cloud** → app **Settings**, set the **Python requirements file** to **`requirements-ui.txt`** (Streamlit, Plotly, and the full training stack). If your workspace only allows the default file, use a branch where `requirements.txt` matches `requirements-ui.txt`, or merge those dependencies manually.
 
 The repo includes `runtime.txt` (Python 3.11), `.python-version` (3.11 for Vercel/local tooling), `packages.txt` (`libgomp1` for LightGBM), and `.streamlit/config.toml` for Cloud.
 

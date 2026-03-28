@@ -11,6 +11,8 @@ import lightgbm as lgb
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, log_loss
 
+from models.feature_constants import COLLAPSE_FEATURES
+
 
 # ── Feature engineering ───────────────────────────────────────────────────────
 
@@ -120,15 +122,6 @@ def build_pressure_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ── Model training ────────────────────────────────────────────────────────────
-
-COLLAPSE_FEATURES = [
-    'rrr', 'crr', 'rrr_gap', 'rrr_ratio',
-    'wickets_fallen', 'wickets_remaining',
-    'phase_pct', 'is_powerplay', 'is_death',
-    'batter_sr_recent', 'partnership_ball',
-    'bowler_economy_live', 'pressure_index',
-    'runs_needed', 'balls_remaining',
-]
 
 
 def train_collapse_model(features_df: pd.DataFrame):
