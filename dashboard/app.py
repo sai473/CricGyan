@@ -22,13 +22,33 @@ def _project_root():
     return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
+def _flatten_pkl_into_saved(saved_dir: str) -> None:
+    """Move *.pkl from subfolders into models/saved (common zip layouts)."""
+    if os.path.isfile(os.path.join(saved_dir, "lgb_pre.pkl")):
+        return
+    import shutil
+    for root, _dirs, files in os.walk(saved_dir):
+        if "lgb_pre.pkl" not in files:
+            continue
+        for name in files:
+            if not name.endswith(".pkl"):
+                continue
+            src = os.path.join(root, name)
+            dst = os.path.join(saved_dir, name)
+            if os.path.abspath(src) != os.path.abspath(dst):
+                shutil.move(src, dst)
+        break
+
+
 def _ensure_models_from_remote():
     """If models are missing, optionally fetch a zip from st.secrets MODEL_BUNDLE_URL (Streamlit Cloud)."""
     saved = os.path.join(_project_root(), "models", "saved")
     if os.path.isfile(os.path.join(saved, "lgb_pre.pkl")):
         return
     try:
-        url = st.secrets["MODEL_BUNDLE_URL"]
+        url = st.secrets["MODEL_BUNDLE_URL"].strip()
+        if not url:
+            return
     except KeyError:
         return
     os.makedirs(saved, exist_ok=True)
@@ -39,8 +59,18 @@ def _ensure_models_from_remote():
                 data = resp.read()
         with zipfile.ZipFile(io.BytesIO(data)) as zf:
             zf.extractall(saved)
+        _flatten_pkl_into_saved(saved)
     except Exception as e:
         st.error(f"Could not download or unpack model bundle: {e}")
+        st.info(
+            "Use a **direct** link to the `.zip` (opening it should start a download). "
+            "Create the zip with: `cd models/saved && zip -r ../../models.zip *.pkl`"
+        )
+        st.stop()
+
+
+def _models_present() -> bool:
+    return os.path.isfile(os.path.join(_project_root(), "models", "saved", "lgb_pre.pkl"))
 
 
 st.set_page_config(page_title="IPL Match Predictor", page_icon="🏏", layout="centered", initial_sidebar_state="expanded")
@@ -82,11 +112,25 @@ def load_models():
 
 lgb_pre, lgb_in, meta, toss_df, collapse_model, collapse_cal, pre_calibrator, team_stats = load_models()
 if lgb_pre is None:
-    st.error(
-        "Models not found locally. Either run `python3 run_from_kaggle.py`, "
-        "commit `models/saved/*.pkl`, or set **MODEL_BUNDLE_URL** in Streamlit Cloud secrets "
-        "(see `.streamlit/secrets.toml.example`)."
-    )
+    had_url = False
+    try:
+        had_url = bool(str(st.secrets.get("MODEL_BUNDLE_URL", "")).strip())
+    except Exception:
+        pass
+    if had_url and not _models_present():
+        st.error(
+            "**MODEL_BUNDLE_URL** is set but `lgb_pre.pkl` is still missing after download. "
+            "Zip must contain the `.pkl` files at the **root** of the archive (see command below)."
+        )
+    else:
+        st.error(
+            "**No model files** in this deployment. Pick one:\n\n"
+            "1. **Commit pickles** (simplest): run `python3 run_from_kaggle.py` locally, then  \n"
+            "`git add -f models/saved/*.pkl && git commit -m \"Add models\" && git push`\n\n"
+            "2. **Streamlit secrets:** add `MODEL_BUNDLE_URL` to a public `.zip` of `models/saved/*.pkl` "
+            "(see `.streamlit/secrets.toml.example`)."
+        )
+    st.code("cd models/saved && zip -r ../../models_bundle.zip *.pkl", language="bash")
     st.stop()
 
 TEAMS = [

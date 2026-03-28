@@ -179,7 +179,11 @@ def predict_match(
     pre_p = pre_calibrator.predict_proba([[raw_pre_p]])[0, 1] if pre_calibrator is not None else raw_pre_p
 
     if in_feats is None:
-        return {'win_prob_team_a': round(pre_p, 3), 'source': 'pre-match only'}
+        return {
+            'win_prob_team_a': round(pre_p, 3),
+            'win_prob_team_b': round(1.0 - pre_p, 3),
+            'source': 'pre-match only',
+        }
 
     in_p   = lgb_in.predict_proba(pd.DataFrame([in_feats]))[0, 1]
     final  = meta.predict_proba([[pre_p, in_p]])[0, 1]
